@@ -56,3 +56,29 @@ https://standards-oui.ieee.org/oui/oui.txt
 
 OUI library:
 https://github.com/gptlang/oui
+
+## Find BSSID you're connected too?
+
+```
+iw dev wlp0s20f3 link
+```
+
+```
+iwlist wlp0s20f3 scan | grep -A 10 "ESSID:\"MyWiFi\"" | grep "Address"
+```
+
+e.g.
+```
+[das@t:~]$ iw dev wlp0s20f3 link
+Connected to 9c:05:d6:<snip> (on wlp0s20f3)
+        SSID: <snip>
+        freq: 5240.0
+        RX: 2112174832 bytes (44635273 packets)
+        TX: 2831794242 bytes (16819438 packets)
+        signal: -32 dBm
+        rx bitrate: 1200.9 MBit/s 80MHz HE-MCS 11 HE-NSS 2 HE-GI 0 HE-DCM 0
+        tx bitrate: 1200.9 MBit/s 80MHz HE-MCS 11 HE-NSS 2 HE-GI 0 HE-DCM 0
+        bss flags: short-slot-time
+        dtim period: 3
+        beacon int: 100
+```
