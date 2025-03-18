@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httputil"
+	"time"
 
 	bssidv1 "github.com/randomizedcoder/go-bssid-geolocator/protos/bssid/v1"
 	"google.golang.org/protobuf/proto"
@@ -64,10 +64,19 @@ func (g *GeoLocator) BuildAppleWLoc(bssids []string) (block *bssidv1.AppleWLoc) 
 
 func (g *GeoLocator) RequestWloc(block *bssidv1.AppleWLoc) (*bssidv1.AppleWLoc, error) {
 
+	g.pC.WithLabelValues("RequestWloc", "start", "counter").Inc()
+	startTime := time.Now()
+	defer func() {
+		g.pH.WithLabelValues("RequestWloc", "complete", "count").Observe(time.Since(startTime).Seconds())
+	}()
+
 	serializedBlock, err := g.SerializeProto(block, g.initialWlocBytes)
 	if err != nil {
+		g.pC.WithLabelValues("RequestWloc", "SerializeProto", "error").Inc()
 		return nil, errors.New("failed to serialize protobuf")
 	}
+	g.pC.WithLabelValues("RequestWloc", "serializedBlockn", "counter").Add(float64(len(serializedBlock)))
+
 	var wlocURL string = "https://gs-loc.apple.com"
 	// switch args.region {
 	// case Options.China:
@@ -77,76 +86,91 @@ func (g *GeoLocator) RequestWloc(block *bssidv1.AppleWLoc) (*bssidv1.AppleWLoc, 
 
 	wlocURL = wlocURL + "/clls/wloc"
 
-	req, _ := http.NewRequest(http.MethodPost, wlocURL, bytes.NewReader(serializedBlock))
+	req, err := http.NewRequest(http.MethodPost, wlocURL, bytes.NewReader(serializedBlock))
+	if err != nil {
+		g.pC.WithLabelValues("RequestWloc", "NewRequest", "error").Inc()
+		return nil, errors.New("failed to http.NewRequest")
+	}
 
 	for key, val := range headers {
 		req.Header.Set(key, val)
 	}
 
-	if g.debugLevel > 10 {
-		log.Println("RequestWloc request built")
-	}
+	// if g.debugLevel > 10 {
+	// 	log.Printf("RequestWloc request built, len(serializedBlock):%d", len(serializedBlock))
+	// }
 
-	if g.debugLevel > 10 {
-		dump, err := httputil.DumpRequestOut(req, true)
-		if err != nil {
-			log.Fatalf("Error dumping request: %v", err)
-		}
-		log.Println("Request Dump:\n", string(dump))
-	}
+	// if g.debugLevel > 10 {
+	// 	dump, err := httputil.DumpRequestOut(req, true)
+	// 	if err != nil {
+	// 		log.Fatalf("Error dumping request: %v", err)
+	// 	}
+	// 	log.Println("Request Dump:\n", string(dump))
+	// }
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		g.pC.WithLabelValues("RequestWloc", "httpDo", "error").Inc()
 		return nil, errors.New("failed to make request")
 	}
 	defer resp.Body.Close()
 
-	if g.debugLevel > 10 {
-		dump, err := httputil.DumpResponse(resp, true)
-		if err != nil {
-			log.Fatalf("Error dumping response: %v", err)
-		}
-		log.Println("Response Dump:\n", string(dump))
-	}
+	g.pC.WithLabelValues("RequestWloc", http.StatusText(resp.StatusCode), "count").Inc()
 
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 0 {
 			return nil, errors.New("cors issue probably")
 		}
+		g.pC.WithLabelValues("RequestWloc", "StatusCode", "error").Inc()
 		return nil, errors.New(http.StatusText(resp.StatusCode))
 	}
 
 	var body []byte
 
 	if resp.Header.Get("Content-Encoding") == "gzip" {
-		log.Println("Response is gzip-encoded. Decompressing...")
+		if g.debugLevel > 1000 {
+			log.Println("Response is gzip-encoded. Decompressing...")
+		}
 
-		// Wrap response body with gzip reader
 		gzipReader, err := gzip.NewReader(resp.Body)
 		if err != nil {
 			log.Fatalf("Failed to create gzip reader: %v", err)
 		}
 		defer gzipReader.Close()
 
-		// Read decompressed response
-		body, err := io.ReadAll(gzipReader)
+		body, err = io.ReadAll(gzipReader)
 		if err != nil {
 			log.Fatalf("Error reading response body: %v", err)
 		}
 
-		log.Println("Decompressed Response:\n", string(body))
+		//log.Println("Decompressed Response:\n", string(body))
+
 	} else {
+
 		// If not gzip-encoded, read normally
-		body, err := io.ReadAll(resp.Body)
+		body, err = io.ReadAll(resp.Body)
 		if err != nil {
 			log.Fatalf("Error reading response body: %v", err)
 		}
-		log.Println("Response:\n", string(body))
+		// if g.debugLevel > 10 {
+		// 	log.Println("Response:\n", string(body))
+		// }
 	}
 
-	if g.debugLevel > 10 {
-		log.Printf("RequestWloc len(body):%d", len(body))
-	}
+	// if g.debugLevel > 1000 {
+	// 	log.Printf("RequestWloc len(body):%d", len(body))
+	// 	log.Printf("RequestWloc body:%s", string(body))
+	// }
+
+	// if g.debugLevel > 10 {
+	// 	dump, err := httputil.DumpResponse(resp, true)
+	// 	if err != nil {
+	// 		log.Fatalf("Error dumping response: %v", err)
+	// 	}
+	// 	log.Println("Response Dump:\n", string(dump))
+	// }
+
+	g.pH.WithLabelValues("RequestWloc", "BodyN", "error").Observe(float64(len(body)))
 
 	respBlock := bssidv1.AppleWLoc{}
 	err = proto.Unmarshal(body[10:], &respBlock)

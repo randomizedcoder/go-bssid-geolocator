@@ -22,14 +22,18 @@ const (
 	signalChannelSizeCst = 10
 	cancelSleepTimeCst   = 5 * time.Second
 
-	promListenCst           = ":9088" // [::1]:9088
+	promListenCst           = ":9099" // [::1]:9099
 	promPathCst             = "/metrics"
 	promMaxRequestsInFlight = 10
 	promEnableOpenMetrics   = true
 
-	concurrentCst = 1
+	concurrentCst = 20
 	ouiCst        = "1C:6A:1B" // ubiquity
-	countCst      = 1
+	//countCst      = 1000
+	countCst = 2e6
+
+	retriesCst            = 3
+	retrySleepDurationCst = 10 * time.Second
 )
 
 var (
@@ -52,6 +56,9 @@ func main() {
 	concurrent := flag.Uint("concurrent", concurrentCst, "concurrent requests count")
 	oui := flag.String("oui", ouiCst, "oui starting point")
 	count := flag.Uint64("count", countCst, "count of bssids")
+
+	retries := flag.Int("retries", retriesCst, "http retries on error")
+	retrySleepDuration := flag.Duration("retrySleepDuration", retrySleepDurationCst, "retrySleepDuration between http retries on error")
 
 	promListen := flag.String("promListen", promListenCst, "Prometheus http listening socket")
 	promPath := flag.String("promPath", promPathCst, "Prometheus http path")
@@ -79,6 +86,10 @@ func main() {
 		Concurrent: *concurrent,
 		Oui:        *oui,
 		Count:      *count,
+
+		Retries:            *retries,
+		RetrySleepDuration: *retrySleepDuration,
+
 		DebugLevel: debugLevel,
 	}
 
@@ -92,7 +103,7 @@ func main() {
 	complete <- struct{}{}
 
 	if debugLevel > 10 {
-		log.Println("xtcp2.go Main complete - farewell")
+		log.Println("go-bssid-geolocator.go Main complete - farewell")
 	}
 
 }
