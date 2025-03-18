@@ -1,0 +1,44 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/randomizedcoder/go-bssid-geolocator/bssid.v1
+plugins:
+  # Golangs
+  - plugin: buf.build/protocolbuffers/go
+    out: .
+    #out: pkg/bssid/v1
+    opt: paths=source_relative
+  # # https://github.com/bufbuild/protoc-gen-validate/blob/main/docs.md
+  # - plugin: buf.build/bufbuild/validate-go
+  #   out: gen/bssid.v1
+  #   opt: paths=source_relative
+  - plugin: buf.build/grpc/go
+    out: .
+    #out: pkg/bssid/v1
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+  # # https://github.com/grpc-ecosystem/grpc-gateway
+  # - name: grpc-gateway
+  #   out: gen/grpc
+  #   opt: paths=source_relative
+  # Non go languages
+  # - plugin: buf.build/grpc/python
+  #   out: gen/python
+  # - plugin: buf.build/protocolbuffers/python
+  #   out: gen/python
+  # - plugin: buf.build/grpc/kotlin
+  #   out: gen/kotlin
+  # - plugin: buf.build/protocolbuffers/kotlin
+  #   out: gen/kotlin
+  # # Dart (Flutter)
+  # - plugin: buf.build/protocolbuffers/dart
+  #   out: gen/dart
+  #   opt: grpc
+  # - plugin: buf.build/connectrpc/go
+  #   out: gen/connectrpc
+  #   opt: paths=source_relative
+  # # OpenAPIv2 ( swagger )
+  # - name: openapiv2
+  #   out: gen/openapiv2
