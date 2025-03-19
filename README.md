@@ -1,6 +1,15 @@
 Go version of a bssid geolocator, designed for scanning OUI Ranges
 
+# Paper
+Surveilling the Masses with Wi-Fi-Based Positioning Systems
 
+https://erikrye.com/wp-content/uploads/2024/05/rye-surveilling-sp24.pdf
+
+## YouTube
+Youtube video is here:
+
+Surveilling the Masses with Wi-Fi Positioning Systems
+https://youtu.be/hlbjUvkoyBA?si=uW1vOIopXt-NI98G
 
 ## Go code
 
@@ -13,19 +22,13 @@ The go code has a more complete protobuf:
 https://github.com/acheong08/apple-corelocation-experiments/blob/main/pb/BSSIDApple.proto
 
 ## Python
-There is a python version, that's not as nice
+There is a python version, that's not as nice.  Protobufs are less complete.
 
 Pythons version:
 https://github.com/gigaryte/bssid-geolocator/
 
 Less complete proto:
 https://github.com/randomizedcoder/bssid-geolocator/blob/main/bssid.proto
-
-## YouTube
-Youtube video is here:
-
-Surveilling the Masses with Wi-Fi Positioning Systems
-https://youtu.be/hlbjUvkoyBA?si=uW1vOIopXt-NI98G
 
 ## MAC Addressing
 MAC addressses
